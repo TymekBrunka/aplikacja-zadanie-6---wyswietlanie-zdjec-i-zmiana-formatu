@@ -15,22 +15,16 @@
         android:layout_margin="10dp"
         android:contentDescription="gex"
         android:tag="img"
-        tools:srcCompat="@tools:sample/avatars" />
+        app:srcCompat="@android:drawable/alert_dark_frame"
+        tools:srcCompat="@android:drawable/dialog_frame" />
 
     <TextView
         android:id="@+id/textView2"
         android:layout_width="130dp"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:tag="img_name"
-        android:text="zdjęcie"
+        android:text="folder"
         android:textAlignment="center"
         android:textColor="#FFFFFF" />
 
-    <Spinner
-        android:id="@+id/spinner"
-        android:layout_width="110dp"
-        android:layout_height="25dp"
-        android:layout_margin="10dp"
-        android:background="#FF5100"
-        android:tag="img_format" />
 </LinearLayout>

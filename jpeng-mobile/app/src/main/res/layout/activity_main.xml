@@ -35,13 +35,13 @@
                 android:textColor="#FF8502" />
         </LinearLayout>
 
-        <androidx.gridlayout.widget.GridLayout
+        <GridLayout
             android:id="@+id/imadzes"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="15dp">
 
-        </androidx.gridlayout.widget.GridLayout>
+        </GridLayout>
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
