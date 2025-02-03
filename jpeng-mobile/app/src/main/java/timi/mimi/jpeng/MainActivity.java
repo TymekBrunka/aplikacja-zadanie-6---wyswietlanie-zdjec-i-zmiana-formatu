@@ -1,7 +1,13 @@
 package timi.mimi.jpeng;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.GridLayout;
@@ -12,9 +18,12 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.File;
 
@@ -26,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     String formaty[] = {".png", ".jpg"};
     ImageView iv;
     File PicturesFolderPath;
+    File CurrentDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,21 +50,51 @@ public class MainActivity extends AppCompatActivity {
 
         imadzes = findViewById(R.id.imadzes);
         PicturesFolderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        File directory = PicturesFolderPath;
+        System.out.println(directory.toString());
+        if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
+            // User may have declined earlier, ask Android if we should show him a reason
+            if (shouldShowRequestPermissionRationale(Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
+                ReloadDir();
+            }
+            else {
+                ActivityCompat.requestPermissions(this,  new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 101);
+            }
+        } else {
+            ReloadDir();
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_READ_CONTACTS: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted, do your work....
+                } else {
+                    // permission denied
+                    // Disable the functionality that depends on this permission.
+                }
+                return;
+            }
 
-        ReloadDir();
+            default:
+                break;
+        }
     }
 
     private void ReloadDir() {
-
-        File[] files = PicturesFolderPath.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile()) {
-                    CreateCard();
-                    System.out.println(file.getName());
-                } else {
-                    CreateFolderCard();
-                    System.out.println(file.getName());
+        if (CurrentDir != null && CurrentDir.isDirectory()) {
+            File[] files = CurrentDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        CreateCard();
+                    } else {
+                        CreateFolderCard();
+                    }
                 }
             }
         }
