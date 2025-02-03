@@ -57,6 +57,10 @@ public class MainActivity extends AppCompatActivity {
             if (shouldShowRequestPermissionRationale(Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
                 ReloadDir();
             }
+//            else if (ActivityCompat.shouldShowRequestPermissionRationale(
+//                    this, Manifest.permission.MANAGE_EXTERNAL_STORAGE
+//            )) {
+//            }
             else {
                 ActivityCompat.requestPermissions(this,  new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 101);
             }
@@ -68,14 +72,15 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_READ_CONTACTS: {
+            case 101: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, do your work....
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    ReloadDir();
                 } else {
                     // permission denied
                     // Disable the functionality that depends on this permission.
+                    System.out.println("well fk.");
                 }
                 return;
             }
@@ -86,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ReloadDir() {
+        System.out.println("Relowding");
         if (CurrentDir != null && CurrentDir.isDirectory()) {
             File[] files = CurrentDir.listFiles();
             if (files != null) {
