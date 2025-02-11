@@ -4,11 +4,11 @@ plugins {
 
 android {
     namespace = "timi.mimi.jpeng"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "timi.mimi.jpeng"
-        minSdk = 34
+        minSdk = 33
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

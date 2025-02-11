@@ -1,6 +1,7 @@
 package timi.mimi.jpeng;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.database.Cursor;
@@ -8,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.GridLayout;
@@ -52,10 +54,15 @@ public class MainActivity extends AppCompatActivity {
         PicturesFolderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         File directory = PicturesFolderPath;
         System.out.println(directory.toString());
-        if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
+//        reqPerms();
+    }
+
+    private void reqPerms() {
+        if (!(ActivityCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
             // User may have declined earlier, ask Android if we should show him a reason
-            if (shouldShowRequestPermissionRationale(Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
-                ReloadDir();
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
+                System.out.println("wyslij mi cos");
+//                ReloadDir();
             }
 //            else if (ActivityCompat.shouldShowRequestPermissionRationale(
 //                    this, Manifest.permission.MANAGE_EXTERNAL_STORAGE
@@ -68,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
             ReloadDir();
         }
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -77,10 +85,16 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     ReloadDir();
+                } else if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    Uri uri = Uri.fromParts("package", getPackageName(), null);
+                    intent.setData(uri);
+                    startActivity(intent);
                 } else {
                     // permission denied
                     // Disable the functionality that depends on this permission.
-                    System.out.println("well fk.");
+                    System.out.println("no i hj.");
+                    reqPerms();
                 }
                 return;
             }
@@ -92,18 +106,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void ReloadDir() {
         System.out.println("Relowding");
-        if (CurrentDir != null && CurrentDir.isDirectory()) {
-            File[] files = CurrentDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isFile()) {
-                        CreateCard();
-                    } else {
-                        CreateFolderCard();
-                    }
-                }
-            }
-        }
+//        if (CurrentDir != null && CurrentDir.isDirectory()) {
+//            File[] files = CurrentDir.listFiles();
+//            if (files != null) {
+//                for (File file : files) {
+//                    if (file.isFile()) {
+//                        CreateCard();
+//                    } else {
+//                        CreateFolderCard();
+//                    }
+//                }
+//            }
+//        }
     }
 
     public void CreateCard() {
