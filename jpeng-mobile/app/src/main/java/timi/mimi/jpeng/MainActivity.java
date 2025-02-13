@@ -36,8 +36,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -104,6 +107,18 @@ public class MainActivity extends AppCompatActivity {
 
         return fileName;
     }
+    private void saveFileToUri(File tempFile, Uri uri) {
+        try (InputStream inputStream = new FileInputStream(tempFile);
+             OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public void CreateCard(Uri imageUri) {
         LinearLayout imadz = (LinearLayout) getLayoutInflater().inflate(R.layout.zdjecie, null);
@@ -144,13 +159,38 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String format = (String)parent.getSelectedItem();
+                String name = ((TextView)(((LinearLayout)(parent.getParent())).findViewWithTag("img_name"))).getText().toString();
+                File tempFile;
                 try {
-                    File tempFile = File.createTempFile("converted_image", format, MainActivity.this.getCacheDir());
+                    tempFile = File.createTempFile("converted_image", format, MainActivity.this.getCacheDir());
                     FileOutputStream out = new FileOutputStream(tempFile);
                     // Compress the resized bitmap to the desired format (e.g., PNG)
-                    ImageView img = ((Spinner)(view.getParent())).findViewWithTag("imageView");
+                    ImageView img = (ImageView)(((LinearLayout)(parent.getParent())).findViewWithTag("img"));
                     Bitmap bitmap = ((BitmapDrawable)img.getDrawable()).getBitmap();
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // Change to JPEG if needed
+                    switch (format) {
+                        case ".png":
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                            break;
+                        case ".jpg":
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                            break;
+                    }
+                    out.close();
+
+                    ActivityResultLauncher<Intent> peakSaveImageLauncher = registerForActivityResult(
+                            new ActivityResultContracts.StartActivityForResult(), result -> {
+                                if (result.getResultCode() == RESULT_OK) {
+                                    if (result.getData() != null) {
+                                        Uri uri = result.getData().getData();
+                                        saveFileToUri(tempFile, uri);
+                                    }
+                                }
+                            }
+                    );
+
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    intent.putExtra(Intent.EXTRA_TITLE, name + format);
+                    peakSaveImageLauncher.launch(intent);
                 } catch (IOException e) {
                     Toast.makeText(MainActivity.this, "Wystąpił błąd konwertowania obrazka", Toast.LENGTH_LONG).show();
                 }
