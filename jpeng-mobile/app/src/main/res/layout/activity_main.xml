@@ -33,6 +33,13 @@
                 android:text="Dżejpeng"
                 android:textAlignment="center"
                 android:textColor="#FF8502" />
+
+            <Button
+                android:id="@+id/addbtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="dodaj" />
         </LinearLayout>
 
         <GridLayout

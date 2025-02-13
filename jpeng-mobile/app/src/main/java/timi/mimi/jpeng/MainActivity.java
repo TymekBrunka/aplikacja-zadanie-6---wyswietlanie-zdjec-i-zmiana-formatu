@@ -1,24 +1,32 @@
 package timi.mimi.jpeng;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -28,6 +36,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,73 +64,48 @@ public class MainActivity extends AppCompatActivity {
         PicturesFolderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         File directory = PicturesFolderPath;
         System.out.println(directory.toString());
-//        reqPerms();
-    }
 
-    private void reqPerms() {
-        if (!(ActivityCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
-            // User may have declined earlier, ask Android if we should show him a reason
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
-                System.out.println("wyslij mi cos");
-//                ReloadDir();
-            }
-//            else if (ActivityCompat.shouldShowRequestPermissionRationale(
-//                    this, Manifest.permission.MANAGE_EXTERNAL_STORAGE
-//            )) {
-//            }
-            else {
-                ActivityCompat.requestPermissions(this,  new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 101);
-            }
-        } else {
-            ReloadDir();
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case 101: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    ReloadDir();
-                } else if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)) {
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    Uri uri = Uri.fromParts("package", getPackageName(), null);
-                    intent.setData(uri);
-                    startActivity(intent);
-                } else {
-                    // permission denied
-                    // Disable the functionality that depends on this permission.
-                    System.out.println("no i hj.");
-                    reqPerms();
+        ActivityResultLauncher<Intent> peakImageLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    Intent data = result.getData();
+                    reload(data);
                 }
-                return;
             }
+        );
 
-            default:
-                break;
+        ((Button)findViewById(R.id.addbtn)).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            peakImageLauncher.launch(intent);
+        });
+    }
+
+    private void reload(Intent data) {
+            if (data != null) {
+                Uri imageUri = data.getData();
+                CreateCard(imageUri);
+            }
+    }
+
+    public String getFileNameFromUri(Uri uri) {
+        String fileName = null;
+        String[] projection = { MediaStore.Images.Media.DISPLAY_NAME };
+
+        // Use the ContentResolver to query the MediaStore
+        ContentResolver contentResolver = MainActivity.this.getContentResolver();
+        try (Cursor cursor = contentResolver.query(uri, projection, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
+                fileName = cursor.getString(nameIndex);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+        return fileName;
     }
 
-    private void ReloadDir() {
-        System.out.println("Relowding");
-//        if (CurrentDir != null && CurrentDir.isDirectory()) {
-//            File[] files = CurrentDir.listFiles();
-//            if (files != null) {
-//                for (File file : files) {
-//                    if (file.isFile()) {
-//                        CreateCard();
-//                    } else {
-//                        CreateFolderCard();
-//                    }
-//                }
-//            }
-//        }
-    }
-
-    public void CreateCard() {
+    public void CreateCard(Uri imageUri) {
         LinearLayout imadz = (LinearLayout) getLayoutInflater().inflate(R.layout.zdjecie, null);
         img_format =  imadz.findViewWithTag("img_format");
 
@@ -128,6 +113,54 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, formaty);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         img_format.setAdapter(spinnerAdapter);
+
+        img_name = imadz.findViewWithTag("img_name");
+        String fileName = getFileNameFromUri(imageUri);
+        int lastDotIndex = fileName.lastIndexOf(".");
+        String format = fileName.substring(lastDotIndex, fileName.length());
+        img_name.setText(fileName.substring(0, lastDotIndex));
+
+        int positionToSelect = -1;
+        for (int i = 0; i < spinnerAdapter.getCount(); i++) {
+            if (spinnerAdapter.getItem(i).endsWith(format)) {
+                positionToSelect = i;
+                break; // Exit the loop once the item is found
+            }
+        }
+        if (positionToSelect != -1) {
+            img_format.setSelection(positionToSelect, false);
+        }
+        ImageView imgViewAnchor = imadz.findViewWithTag("img");
+
+        try {
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(MainActivity.this.getContentResolver(), imageUri);
+            iv = imgViewAnchor;
+            iv.setImageBitmap(bitmap);
+        } catch (IOException e) {
+            Toast.makeText(this, "Wystąpił błąd wczytywania obrazka", Toast.LENGTH_LONG).show();
+        }
+
+        img_format.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String format = (String)parent.getSelectedItem();
+                try {
+                    File tempFile = File.createTempFile("converted_image", format, MainActivity.this.getCacheDir());
+                    FileOutputStream out = new FileOutputStream(tempFile);
+                    // Compress the resized bitmap to the desired format (e.g., PNG)
+                    ImageView img = ((Spinner)(view.getParent())).findViewWithTag("imageView");
+                    Bitmap bitmap = ((BitmapDrawable)img.getDrawable()).getBitmap();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // Change to JPEG if needed
+                } catch (IOException e) {
+                    Toast.makeText(MainActivity.this, "Wystąpił błąd konwertowania obrazka", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         imadzes.addView(imadz);
     }
